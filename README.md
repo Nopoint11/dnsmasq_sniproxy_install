@@ -12,6 +12,12 @@
     * CentOS6/7， Debian8/9, Ubuntu16/18 已测试成功
 	* 理论上不限虚拟化类型，如有问题请反馈！
     * 如果脚本最后显示的IP和实际公网IP不相符，请修改一下文件`/etc/sniproxy.conf`中的IP地址
+    
+    安装和卸载dnsmasq
+    wget --no-check-certificate -O dnsmasq.sh https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/dnsmasq.sh && bash dnsmasq.sh -i
+
+wget --no-check-certificate -O dnsmasq.sh https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/dnsmasq.sh && bash dnsmasq.sh -u
+    
 
 ### 安装方法：
 ``` Bash
