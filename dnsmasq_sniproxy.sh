@@ -113,7 +113,7 @@ error_detect_depends(){
 }
 
 config_firewall(){
-    ports="53 80 443"
+    ports="53"
     if centosversion 6; then
         /etc/init.d/iptables status > /dev/null 2>&1
         if [ $? -eq 0 ]; then
@@ -137,8 +137,6 @@ config_firewall(){
             default_zone=$(firewall-cmd --get-default-zone)
             firewall-cmd --permanent --zone=${default_zone} --add-port=53/tcp
             firewall-cmd --permanent --zone=${default_zone} --add-port=53/udp
-            firewall-cmd --permanent --zone=${default_zone} --add-port=80/tcp
-            firewall-cmd --permanent --zone=${default_zone} --add-port=443/tcp
             firewall-cmd --reload
         else
             echo -e "[${yellow}Warning${plain}] firewalld looks like not running or not installed, please enable port ${ports} manually if necessary."
@@ -204,37 +202,6 @@ upgrade_dnsmasq(){
     yes|cp -f /tmp/dnsmasq-2.80/src/dnsmasq /usr/sbin/dnsmasq && chmod 755 /usr/sbin/dnsmasq
 }
 
-install_sniproxy(){
-    cd /tmp
-    if [ -e sniproxy ]; then
-        rm -rf sniproxy
-    fi
-    git clone https://github.com/dlundquist/sniproxy.git
-    cd sniproxy
-    if check_sys packageManager yum; then
-        ./autogen.sh && ./configure && make dist
-        if centosversion 6; then
-            scl enable devtoolset-6 'rpmbuild --define "_sourcedir `pwd`" --define "_topdir /tmp/sniproxy/rpmbuild" --define "debug_package %{nil}" -ba redhat/sniproxy.spec'
-        elif centosversion 7; then
-            rpmbuild --define "_sourcedir `pwd`" --define "_topdir /tmp/sniproxy/rpmbuild" --define "debug_package %{nil}" -ba redhat/sniproxy.spec
-        fi
-        error_detect_depends "yum -y install /tmp/sniproxy/rpmbuild/RPMS/x86_64/sniproxy-*.rpm"
-        download /etc/init.d/sniproxy https://raw.githubusercontent.com/dlundquist/sniproxy/master/redhat/sniproxy.init && chmod +x /etc/init.d/sniproxy
-    elif check_sys packageManager apt; then
-        ./autogen.sh && dpkg-buildpackage
-        error_detect_depends "dpkg -i --no-debsig ../sniproxy_*.deb"
-        download /etc/init.d/sniproxy https://raw.githubusercontent.com/dlundquist/sniproxy/master/debian/init.d && chmod +x /etc/init.d/sniproxy
-        download /etc/default/sniproxy https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/sniproxy.default
-    fi
-    download /etc/sniproxy.conf https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/sniproxy.conf
-    cp -rf /tmp/proxy-domains.txt /tmp/out-proxy-domains.txt
-    sed -i -e 's/\./\\\./g' -e 's/^/    \.\*/' -e 's/$/\$ \*/' /tmp/out-proxy-domains.txt || (echo -e "[${red}Error:${plain}] Failed to configuration sniproxy." && exit 1)
-    sed -i '/table {/r /tmp/out-proxy-domains.txt' /etc/sniproxy.conf || (echo -e "[${red}Error:${plain}] Failed to configuration sniproxy." && exit 1)
-    if [ ! -e /var/log/sniproxy ]; then
-        mkdir /var/log/sniproxy
-    fi
-}
-
 install_check(){
     if check_sys packageManager yum || check_sys packageManager apt; then
         if centosversion 5; then
@@ -248,7 +215,7 @@ install_check(){
 
 Hello() {
     echo ""
-    echo -e "${yellow}Dnsmasq + SNI Proxy自动安裝脚本${plain}"
+    echo -e "${yellow}Dnsmasq自动安裝脚本${plain}"
     echo -e "${yellow}支持系统:  CentOS 6+, Debian8+, Ubuntu16+${plain}"
     echo ""
 }
@@ -258,8 +225,8 @@ Help() {
     echo "使用方法：bash $0 [-h] [-i] [-u]"
     echo ""
     echo "  -h, --help            显示帮助信息"
-    echo "  -i, --install         安装 Dnsmasq + SNI Proxy"
-    echo "  -u, --uninstall       卸载 Dnsmasq + SNI Proxy"
+    echo "  -i, --install         安装 Dnsmasq"
+    echo "  -u, --uninstall       卸载 Dnsmasq"
     echo ""
 }
 
@@ -276,7 +243,7 @@ Install() {
     elif check_sys packageManager apt; then
         error_detect_depends "apt-get -y install net-tools"
     fi
-    for aport in 80 443 53; do
+    for aport in 53; do
         netstat -a -n -p | grep LISTEN | grep -P "\d+\.\d+\.\d+\.\d+:${aport}\s+" > /dev/null && echo -e "[${red}Error${plain}] required port ${aport} already in use\n" && exit 1
     done
     disable_selinux
@@ -312,39 +279,7 @@ Install() {
         systemctl enable dnsmasq
         systemctl restart dnsmasq
     fi
-    echo "安装SNI Proxy..."
-    if check_sys packageManager yum; then
-        rpm -qa | grep sniproxy >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            rpm -e sniproxy
-        fi
-    elif check_sys packageManager apt; then
-        dpkg -s sniproxy >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            dpkg -r sniproxy
-        fi
-    fi
-    install_sniproxy
-    echo "检查安装情况..."
-    [ ! -f /usr/sbin/sniproxy ] && echo -e "[${red}Error${plain}] 安装Sniproxy出现问题." && exit 1
-    echo -e "[${green}Info${plain}] Checking the sniproxy services complete..."
-    [ ! -f /etc/init.d/sniproxy ] && echo -e "[${red}Error${plain}] 下载启动文件时出现问题，请检查主机网络连接." && exit 1
-    echo -e "[${green}Info${plain}] Checking the sniproxy startup file complete..."
-    echo "启动 SNI Proxy 服务..."
-    if check_sys packageManager yum; then
-        if centosversion 6; then
-            chkconfig sniproxy on > /dev/null 2>&1
-            service sniproxy start || (echo -e "[${red}Error:${plain}] Failed to start sniproxy." && exit 1)
-        elif centosversion 7; then
-            systemctl enable sniproxy > /dev/null 2>&1
-            systemctl start sniproxy || (echo -e "[${red}Error:${plain}] Failed to start sniproxy." && exit 1)
-        fi
-    elif check_sys packageManager apt; then
-        systemctl daemon-reload
-        systemctl enable sniproxy > /dev/null 2>&1
-        systemctl restart sniproxy || (echo -e "[${red}Error:${plain}] Failed to start sniproxy." && exit 1)
-    fi
-    echo -e "[${green}Info${plain}] dnsmasq and sniproxy startup complete..."
+    echo -e "[${green}Info${plain}] dnsmasq startup complete..."
     if check_sys packageManager yum; then
         echo "检查防火墙端口..."
         config_firewall
@@ -352,52 +287,45 @@ Install() {
     fi
     install_cleanup
     echo ""
-    echo -e "${yellow}Dnsmasq + SNI Proxy 已完成安装！${plain}"
+    echo -e "${yellow}Dnsmasq 已完成安装！${plain}"
     echo ""
-    echo -e "${yellow}将您的DNS更改为 $(get_ip) 即可以观看Netflix节目了。${plain}"
+    echo -e "${yellow}将您的DNS设置完成了。${plain}"
     echo ""
 }
 
 Uninstall() {
     Hello
-    echo -e "${yellow}确定卸载Dnsmasq和SNI Proxy?${plain}"
+    echo -e "${yellow}确定卸载Dnsmasq?${plain}"
     echo -e "${yellow}[Enter] 确定 [N] 取消${plain}"
     read selection
     if [[ -z $selection ]]; then
-        echo -e "[${green}Info${plain}] Stoping dnsmasq and sniproxy"
+        echo -e "[${green}Info${plain}] Stoping dnsmasq"
         if check_sys packageManager yum; then
             if centosversion 6; then
-                chkconfig sniproxy off > /dev/null 2>&1
-                service sniproxy stop || echo -e "[${red}Error:${plain}] Failed to stop sniproxy."
                 chkconfig dnsmasq off > /dev/null 2>&1
                 service dnsmasq stop || echo -e "[${red}Error:${plain}] Failed to stop dnsmasq."
             elif centosversion 7; then
-                systemctl disable sniproxy > /dev/null 2>&1
-                systemctl stop sniproxy || echo -e "[${red}Error:${plain}] Failed to stop sniproxy."
                 systemctl disable dnsmasq > /dev/null 2>&1
                 systemctl stop dnsmasq || echo -e "[${red}Error:${plain}] Failed to stop dnsmasq."
           fi
         elif check_sys packageManager apt; then
-            systemctl disable sniproxy > /dev/null 2>&1
-            systemctl stop sniproxy || echo -e "[${red}Error:${plain}] Failed to stop sniproxy."
             systemctl disable dnsmasq > /dev/null 2>&1
             systemctl stop dnsmasq || echo -e "[${red}Error:${plain}] Failed to stop dnsmasq."
         fi
         echo -e "[${green}Info${plain}] Starting to uninstall dnsmasq and sniproxy"
         if check_sys packageManager yum; then
-            yum remove dnsmasq sniproxy -y > /dev/null 2>&1
+            yum remove dnsmasq -y > /dev/null 2>&1
             if [ $? -ne 0 ]; then
               echo -e "[${red}Error${plain}] Failed to uninstall ${red}dnsmasq${plain}"
             fi
         elif check_sys packageManager apt; then
-            apt-get remove dnsmasq sniproxy -y > /dev/null 2>&1
+            apt-get remove dnsmasq -y > /dev/null 2>&1
             if [ $? -ne 0 ]; then
                 echo -e "[${red}Error${plain}] Failed to uninstall ${red}dnsmasq${plain}"
             fi
         fi
-        rm -rf /etc/sniproxy.conf || echo -e "[${red}Error${plain}] Failed to delete sniproxy configuration file"
         rm -rf /etc/dnsmasq.d/custom_netflix.conf || echo -e "[${red}Error${plain}] Failed to delete dnsmasq configuration file"
-        echo -e "[${green}Info${plain}] dnsmasq and sniproxy uninstall complete..."
+        echo -e "[${green}Info${plain}] dnsmasq uninstall complete..."
     else
         exit 0
     fi
