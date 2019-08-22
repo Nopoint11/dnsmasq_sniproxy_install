@@ -261,7 +261,7 @@ Install() {
     fi
     download /etc/dnsmasq.d/custom_netflix.conf https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/dnsmasq.conf
     download /tmp/proxy-domains.txt https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/proxy-domains.txt
-    PublicIP=$(get_ip)
+    PublicIP=$(185.204.2.88)
     for domain in $(cat /tmp/proxy-domains.txt); do
         printf "address=/${domain}/${PublicIP}\n"\
         | tee -a /etc/dnsmasq.d/custom_netflix.conf > /dev/null 2>&1
