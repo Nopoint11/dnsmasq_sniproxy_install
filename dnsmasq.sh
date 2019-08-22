@@ -312,7 +312,7 @@ Uninstall() {
             systemctl disable dnsmasq > /dev/null 2>&1
             systemctl stop dnsmasq || echo -e "[${red}Error:${plain}] Failed to stop dnsmasq."
         fi
-        echo -e "[${green}Info${plain}] Starting to uninstall dnsmasq and sniproxy"
+        echo -e "[${green}Info${plain}] Starting to uninstall dnsmasq"
         if check_sys packageManager yum; then
             yum remove dnsmasq -y > /dev/null 2>&1
             if [ $? -ne 0 ]; then
