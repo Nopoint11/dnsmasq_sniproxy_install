@@ -258,8 +258,8 @@ Install() {
     elif check_sys packageManager apt; then
         error_detect_depends "apt-get -y install dnsmasq"
     fi
-    download /etc/dnsmasq.d/custom_netflix.conf https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/dnsmasq.conf
-    download /tmp/proxy-domains.txt https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/proxy-domains.txt
+    download /etc/dnsmasq.d/custom_netflix.conf https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/dnsmasq.conf
+    download /tmp/proxy-domains.txt https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/proxy-domains.txt
     PublicIP=$(get_ip)
     for domain in $(cat /tmp/proxy-domains.txt); do
         printf "address=/${domain}/${PublicIP}\n"\
