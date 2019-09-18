@@ -224,9 +224,9 @@ install_sniproxy(){
         ./autogen.sh && dpkg-buildpackage
         error_detect_depends "dpkg -i --no-debsig ../sniproxy_*.deb"
         download /etc/init.d/sniproxy https://raw.githubusercontent.com/dlundquist/sniproxy/master/debian/init.d && chmod +x /etc/init.d/sniproxy
-        download /etc/default/sniproxy https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/sniproxy.default
+        download /etc/default/sniproxy https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/sniproxy.default
     fi
-    download /etc/sniproxy.conf https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/sniproxy.conf
+    download /etc/sniproxy.conf https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/sniproxy.conf
     cp -rf /tmp/proxy-domains.txt /tmp/out-proxy-domains.txt
     sed -i -e 's/\./\\\./g' -e 's/^/    \.\*/' -e 's/$/\$ \*/' /tmp/out-proxy-domains.txt || (echo -e "[${red}Error:${plain}] Failed to configuration sniproxy." && exit 1)
     sed -i '/table {/r /tmp/out-proxy-domains.txt' /etc/sniproxy.conf || (echo -e "[${red}Error:${plain}] Failed to configuration sniproxy." && exit 1)
@@ -292,8 +292,8 @@ Install() {
     elif check_sys packageManager apt; then
         error_detect_depends "apt-get -y install dnsmasq"
     fi
-    download /etc/dnsmasq.d/custom_netflix.conf https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/dnsmasq.conf
-    download /tmp/proxy-domains.txt https://raw.githubusercontent.com/myxuchangbin/dnsmasq_sniproxy_install/master/proxy-domains.txt
+    download /etc/dnsmasq.d/custom_netflix.conf https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/dnsmasq.conf
+    download /tmp/proxy-domains.txt https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/proxy-domains.txt
     PublicIP=$(get_ip)
     for domain in $(cat /tmp/proxy-domains.txt); do
         printf "address=/${domain}/${PublicIP}\n"\
