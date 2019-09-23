@@ -147,7 +147,7 @@ install_cleanup(){
     cd  /tmp/
     rm -rf dnsmasq-2.80 dnsmasq-2.80.tar.gz
     rm -rf sniproxy
-    rm -rf proxy-domains.txt out-proxy-domains.txt
+    rm -rf proxy-domains1.txt out-proxy-domains1.txt
 }
 
 install_dependencies(){
@@ -259,7 +259,7 @@ Install() {
         error_detect_depends "apt-get -y install dnsmasq"
     fi
     download /etc/dnsmasq.d/custom_netflix.conf https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/dnsmasq.conf
-    download /tmp/proxy-domains.txt https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/proxy-domains1.txt
+    download /tmp/proxy-domains1.txt https://raw.githubusercontent.com/Nopoint11/dnsmasq_sniproxy_install/master/proxy-domains1.txt
     PublicIP=$(get_ip)
     for domain in $(cat /tmp/proxy-domains1.txt); do
         printf "address=/${domain}/${PublicIP}\n"\
